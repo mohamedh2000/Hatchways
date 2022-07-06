@@ -10,13 +10,13 @@ import (
 	"strings"
 )
 
-type success struct {
-	success bool
+type Success struct {
+	Success bool `json:"success"`
 }
-type error struct {
-	error string
+type Error struct {
+	Error string `json:"error"`
 }
-type post struct {
+type Post struct {
 	Id         int      `json:"id"`
 	Author     string   `json:"author"`
 	AuthorId   int      `json:"authorId"`
@@ -25,25 +25,19 @@ type post struct {
 	Reads      int      `json:"reads"`
 	Tags       []string `json:"tags"`
 }
-type posts struct {
-	Posts []post `json:"posts"`
+type Posts struct {
+	Posts []Post `json:"posts"`
 }
 
-func (a posts) Len() int { return len(a.Posts) }
-func (a posts) Less(i, j int) bool {
+func (a Posts) Len() int { return len(a.Posts) }
+func (a Posts) Less(i, j int) bool {
 	return a.Posts[i].Id < a.Posts[j].Id
 }
-func (a posts) Swap(i, j int) { a.Posts[i], a.Posts[j] = a.Posts[j], a.Posts[i] }
+func (a Posts) Swap(i, j int) { a.Posts[i], a.Posts[j] = a.Posts[j], a.Posts[i] }
 
 func main() {
 
 	const URL = "https://api.hatchways.io/assessment/blog/posts"
-
-	http.HandleFunc("/api/ping", func(w http.ResponseWriter, r *http.Request) {
-		var response, _ = json.Marshal(success{success: true})
-		w.WriteHeader(200)
-		w.Write(response)
-	})
 
 	http.HandleFunc("/api/posts", func(w http.ResponseWriter, r *http.Request) {
 		queryVals := r.URL.Query()
@@ -52,7 +46,7 @@ func main() {
 
 		if !queryVals.Has("tags") {
 			w.WriteHeader(400)
-			var response, _ = json.Marshal(error{error: "Tags parameter is required"})
+			var response, _ = json.Marshal(Error{Error: "Tags parameter is required"})
 			w.Write(response)
 		}
 		if queryVals.Has("sortBy") {
@@ -70,7 +64,7 @@ func main() {
 				break
 			default:
 				w.WriteHeader(400)
-				var response, _ = json.Marshal(error{error: "sortBy parameter is invalid"})
+				var response, _ = json.Marshal(Error{Error: "sortBy parameter is invalid"})
 				w.Write(response)
 				break
 			}
@@ -80,34 +74,32 @@ func main() {
 			case "asc":
 				break
 			case "desc":
-				//		sortBy = "desc"
+				sortBy = "desc"
 				break
 			default:
 				w.WriteHeader(400)
-				var response, _ = json.Marshal(error{error: "direction parameter is invalid"})
+				var response, _ = json.Marshal(Error{Error: "direction parameter is invalid"})
 				w.Write(response)
 				break
 			}
 		}
 
-		//resultMaps := make(map[int]post)
 		temp := strings.Split(queryVals.Get("tags"), ",")
-		returnMap := make(map[int]post)
+		returnMap := make(map[int]Post)
 		for i, s := range temp {
 			resp, err := http.Get(URL + "?tag=" + string(temp[i]))
 			if err != nil {
 				log.Fatalln(err)
 			}
 			defer resp.Body.Close()
-			//tempResp := resp
 			bytes, err := io.ReadAll(resp.Body)
 			if err != nil {
 				log.Fatalln(err)
 			}
-			var tempRet posts
+			var tempRet Posts
 
 			json.Unmarshal([]byte(bytes), &tempRet)
-			var allRet []post = tempRet.Posts
+			var allRet []Post = tempRet.Posts
 
 			for k := range allRet {
 				newEntry := allRet[k]
@@ -116,7 +108,7 @@ func main() {
 			fmt.Println(s)
 		}
 
-		var retArray []post
+		var retArray []Post
 
 		for _, v := range returnMap {
 			retArray = append(retArray, v)
@@ -149,7 +141,7 @@ func main() {
 			}
 		})
 
-		jsonStr, err := json.Marshal(posts{Posts: retArray})
+		jsonStr, err := json.Marshal(Posts{Posts: retArray})
 
 		fmt.Println(string(jsonStr))
 		if err != nil {
@@ -158,6 +150,13 @@ func main() {
 		w.WriteHeader(200)
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(jsonStr)
+	})
+
+	http.HandleFunc("/api/ping", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(200)
+		temp := Success{Success: true}
+		ret, _ := json.Marshal(temp)
+		w.Write(ret)
 	})
 
 	port := ":8080"
