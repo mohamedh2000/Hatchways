@@ -1,1 +1,1 @@
-Hey I was unable to really work on this project for a big chunk of time as I was finishing up some classwork for Summer II. 
+Simple Golang project 
